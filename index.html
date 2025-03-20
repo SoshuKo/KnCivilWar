@@ -144,6 +144,19 @@
             { name: 'シュメケルペ', minX: 682, maxX: 747, minY: 1119.3333129882812, maxY: 1235.3333129882812, provinceId: 147, shipProvinceId: 145 }
         ];
 
+// 画像ファイルのパスを定義
+const imagePaths = {
+    blue_infantry: 'https://soshuko.github.io/KnCivilWar/blue_infantry.png',
+    red_infantry: 'https://soshuko.github.io/KnCivilWar/red_infantry.png',
+    green_infantry: 'https://soshuko.github.io/KnCivilWar/green_infantry.png',
+    blue_tank: 'https://soshuko.github.io/KnCivilWar/blue_tank.png',
+    red_tank: 'https://soshuko.github.io/KnCivilWar/red_tank.png',
+    green_tank: 'https://soshuko.github.io/KnCivilWar/green_tank.png',
+    blue_ship: 'https://soshuko.github.io/KnCivilWar/blue_ship.png',
+    red_ship: 'https://soshuko.github.io/KnCivilWar/red_ship.png',
+    green_ship: 'https://soshuko.github.io/KnCivilWar/green_ship.png'
+};
+
         // プロヴィンスIDと隣接プロヴィンスの定義
         const provinceColors = {
     '1': 'rgb(32, 0, 255)',
@@ -695,11 +708,9 @@ function preloadUnitImages() {
         ['blue', 'red', 'green'].forEach(color => {
             const img = new Image();
             img.onload = function() {
-                // 画像の読み込みが完了したら、unitImagesオブジェクトに格納
                 unitImages[`${color}_${type}`] = img;
             };
-            // GitHub Pages のパスに合わせて修正
-            img.src = `https://soshuko.github.io/KnCivilWar/${color}_${type}.png`;
+            img.src = imagePaths[`${color}_${type}`]; // 定義したパスを使用
         });
     });
 }

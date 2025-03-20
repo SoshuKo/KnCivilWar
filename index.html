@@ -471,6 +471,18 @@
         dataImage.src = 'スクニューネ内戦マップ4.png';
         roadImage.src = 'スクニューネ内戦マップ6.png';
 
+        // ユニット画像を事前に読み込む関数
+        function preloadUnitImages() {
+            ['infantry', 'tank', 'ship'].forEach(type => {
+                ['blue', 'red', 'green'].forEach(color => {
+                    const img = new Image();
+                    // GitHub Pages のパスに合わせて修正
+                    img.src = `https://soshuko.github.io/KnCivilWar/${color}_${type}.png`;
+                    unitImages[`${color}_${type}`] = img;
+                });
+            });
+        }
+        
         // ターン1のイベント
         function turn1Event() {
             if (turn === 1) {
@@ -489,20 +501,6 @@
                 eventMenu.style.display = 'none';
             }
         });
-
-const unitImages = {}; // ユニット画像を格納するオブジェクト
-
-// ユニット画像を事前に読み込む関数
-function preloadUnitImages() {
-    ['infantry', 'tank', 'ship'].forEach(type => {
-        ['blue', 'red', 'green'].forEach(color => {
-            const img = new Image();
-            // GitHub Pages のパスに合わせて修正
-            img.src = `https://soshuko.github.io/KnCivilWar/${color}_${type}.png`;
-            unitImages[`${color}_${type}`] = img;
-        });
-    });
-}
         
         function nextTurn() {
             turn++;

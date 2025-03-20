@@ -470,18 +470,6 @@
         displayImage.src = 'スクニューネ内戦マップ1.png';
         dataImage.src = 'スクニューネ内戦マップ4.png';
         roadImage.src = 'スクニューネ内戦マップ6.png';
-
-        // ユニット画像を事前に読み込む関数
-        function preloadUnitImages() {
-            ['infantry', 'tank', 'ship'].forEach(type => {
-                ['blue', 'red', 'green'].forEach(color => {
-                    const img = new Image();
-                    // GitHub Pages のパスに合わせて修正
-                    img.src = `https://soshuko.github.io/KnCivilWar/${color}_${type}.png`;
-                    unitImages[`${color}_${type}`] = img;
-                });
-            });
-        }
         
         // ターン1のイベント
         function turn1Event() {
@@ -702,36 +690,38 @@ function produceUnit(unitType) {
     drawUnits();
 }
         
-        // ユニット画像を事前に読み込む関数
-        function preloadUnitImages() {
-            ['infantry', 'tank', 'ship'].forEach(type => {
-                ['blue', 'red', 'green'].forEach(color => {
-                    const img = new Image();
-                    img.src = `${color}_${type}.png`;
-                    unitImages[`${color}_${type}`] = img;
-                });
-            });
+function preloadUnitImages() {
+    ['infantry', 'tank', 'ship'].forEach(type => {
+        ['blue', 'red', 'green'].forEach(color => {
+            const img = new Image();
+            img.onload = function() {
+                // 画像の読み込みが完了したら、unitImagesオブジェクトに格納
+                unitImages[`${color}_${type}`] = img;
+            };
+            // GitHub Pages のパスに合わせて修正
+            img.src = `https://soshuko.github.io/KnCivilWar/${color}_${type}.png`;
+        });
+    });
+}
+        
+// ユニット描画関数
+function drawUnits() {
+    ctx.drawImage(displayImage, 0, 0); // 地図を再描画
+    units.forEach(unit => {
+        let color = '';
+        if (unit.countryId >= 1 && unit.countryId <= 20) {
+            color = 'blue';
+        } else if (unit.countryId >= 21 && unit.countryId <= 40) {
+            color = 'red';
+        } else if (unit.countryId >= 41 && unit.countryId <= 60) {
+            color = 'green';
         }
-
-        // ユニット描画関数
-        function drawUnits() {
-            ctx.drawImage(displayImage, 0, 0); // 地図を再描画
-            units.forEach(unit => {
-                let color = '';
-                if (unit.countryId >= 1 && unit.countryId <= 20) {
-                    color = 'blue';
-                } else if (unit.countryId >= 21 && unit.countryId <= 40) {
-                    color = 'red';
-                } else if (unit.countryId >= 41 && unit.countryId <= 60) {
-                    color = 'green';
-                }
-                const img = unitImages[`${color}_${unit.type}`];
-                if (img) {
-                    ctx.drawImage(img, unit.x - 10, unit.y - 10, 20, 20); // ユニットを描画
-                }
-            });
+        const img = unitImages[`${color}_${unit.type}`];
+        if (img && img.complete) { // 画像が読み込み済みか確認
+            ctx.drawImage(img, unit.x - 10, unit.y - 10, 20, 20); // ユニットを描画
         }
-
+    });
+}
         function displayBases() {
             let currentBaseName = null; // 現在表示されている基地の名前を追跡
 

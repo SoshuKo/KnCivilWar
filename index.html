@@ -74,6 +74,16 @@
         .ship-production {
             display: none;
         }
+        .side-menu {
+            position: fixed;
+            top: 100px;
+            left: 10px;
+            border: 1px solid black;
+            padding: 10px;
+            background-color: white;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            opacity: 0.8; /* 透明度を 0.8 に設定 */
+        }
     </style>
 </head>
 <body>
@@ -107,6 +117,12 @@
         </div>
     </div>
     <img id="flagDisplay" src="" alt="選択した国の国旗">
+    <div id="unitSideMenu" class="side-menu" style="display: none;">
+    </div>
+    <div id="commandInputContainer" style="position: fixed; bottom: 10px; left: 10px; background-color: white; padding: 5px; border: 1px solid black;">
+        <input type="text" id="commandInput" placeholder="コマンドを入力">
+        <button id="executeCommandButton">実行</button>
+    </div>
     <script>
         let turn = 1; // ターン数を初期化
         const eventMenu = document.getElementById('eventMenu');
@@ -115,6 +131,7 @@
         let selectedCountryId = null;
         const unitImages = {}; // ユニット画像を格納するオブジェクト
         let selectedUnit = null; // 選択中のユニットを格納する変数
+        const unitSideMenu = document.getElementById('unitSideMenu'); // unitSideMenu 変数を宣言
         const canvas = document.getElementById('mapCanvas');
         const ctx = canvas.getContext('2d');
         const dataCanvas = document.getElementById('dataCanvas');
@@ -129,6 +146,9 @@
         const coordinatesDiv = document.getElementById('coordinates');
         const sideMenu = document.getElementById('sideMenu');
         const baseNameDisplay = document.getElementById('baseName');
+        let unitIdCounter = 1; // グローバルスコープで宣言
+        const commandInput = document.getElementById('commandInput');
+        const executeCommandButton = document.getElementById('executeCommandButton');
         const bases = [
             { name: 'ステーネ', minX: 262, maxX: 451, minY: 133, maxY: 329, provinceId: 7 },
             { name: 'ブラウジア', minX: 384, maxX: 509, minY: 303, maxY: 390, provinceId: 22 },
@@ -156,7 +176,7 @@ const imagePaths = {
     red_ship: 'red_ship.PNG',
     green_ship: 'green_ship.PNG'
 };
-
+        
         // プロヴィンスIDと隣接プロヴィンスの定義
         const provinceColors = {
     '1': 'rgb(32, 0, 255)',
@@ -459,6 +479,20 @@ const imagePaths = {
     '147': ['144', '148'],
     '148': ['145', '147'],
 };
+
+// ユニットの性能データ
+const unitStats = {
+    '01': { infantry: { hp: 3, atk: 3, def: 3, mov: 3, range: 1, cost: 3, time: 3 }, tank: { hp: 4, atk: 4, def: 4, mov: 2, range: 3, cost: 4, time: 4 }, ship: { hp: 3, atk: 3, def: 3, mov: 3, range: 3, cost: 3, time: 3 } },
+    '03': { infantry: { hp: 3, atk: 4, def: 2, mov: 3, range: 1, cost: 4, time: 4 }, tank: { hp: 5, atk: 5, def: 4, mov: 2, range: 3, cost: 5, time: 5 }, ship: { hp: 4, atk: 4, def: 2, mov: 3, range: 4, cost: 4, time: 4 } },
+    '04': { infantry: { hp: 4, atk: 2, def: 4, mov: 3, range: 1, cost: 4, time: 4 }, tank: { hp: 5, atk: 4, def: 5, mov: 2, range: 3, cost: 5, time: 5 }, ship: { hp: 5, atk: 3, def: 4, mov: 3, range: 3, cost: 4, time: 4 } },
+    '21': { infantry: { hp: 4, atk: 5, def: 3, mov: 3, range: 1, cost: 5, time: 5 }, tank: { hp: 5, atk: 7, def: 5, mov: 2, range: 4, cost: 7, time: 7 }, ship: { hp: 5, atk: 5, def: 3, mov: 3, range: 4, cost: 5, time: 5 } },
+    '22': { infantry: { hp: 5, atk: 3, def: 5, mov: 3, range: 1, cost: 5, time: 5 }, tank: { hp: 5, atk: 5, def: 7, mov: 2, range: 3, cost: 7, time: 7 }, ship: { hp: 4, atk: 3, def: 5, mov: 3, range: 3, cost: 5, time: 5 } },
+    '23': { infantry: { hp: 2, atk: 4, def: 2, mov: 3, range: 1, cost: 2, time: 2 }, tank: { hp: 3, atk: 4, def: 3, mov: 2, range: 3, cost: 3, time: 3 }, ship: { hp: 2, atk: 4, def: 2, mov: 3, range: 3, cost: 2, time: 2 } },
+    '24': { infantry: { hp: 3, atk: 2, def: 4, mov: 3, range: 1, cost: 2, time: 2 }, tank: { hp: 4, atk: 3, def: 4, mov: 2, range: 3, cost: 3, time: 3 }, ship: { hp: 3, atk: 2, def: 4, mov: 3, range: 3, cost: 2, time: 2 } },
+    '25': { infantry: { hp: 2, atk: 3, def: 2, mov: 4, range: 1, cost: 2, time: 2 }, tank: { hp: 3, atk: 4, def: 3, mov: 3, range: 3, cost: 3, time: 3 }, ship: { hp: 2, atk: 3, def: 2, mov: 4, range: 3, cost: 2, time: 2 } },
+    '41': { infantry: { hp: 5, atk: 5, def: 5, mov: 5, range: 2, cost: 7, time: 7 }, tank: { hp: 7, atk: 7, def: 7, mov: 4, range: 4, cost: 6, time: 6 }, ship: { hp: 5, atk: 5, def: 5, mov: 5, range: 5, cost: 7, time: 7 } },
+    '42': { infantry: { hp: 5, atk: 5, def: 5, mov: 3, range: 5, cost: 7, time: 7 }, tank: { hp: 7, atk: 7, def: 7, mov: 2, range: 5, cost: 6, time: 6 }, ship: { hp: 5, atk: 5, def: 5, mov: 3, range: 5, cost: 7, time: 7 } }
+};
         
         displayImage.onload = function() {
             canvas.width = displayImage.width;
@@ -483,7 +517,7 @@ const imagePaths = {
         displayImage.src = 'スクニューネ内戦マップ1.png';
         dataImage.src = 'スクニューネ内戦マップ4.png';
         roadImage.src = 'スクニューネ内戦マップ6.png';
-        
+
         // ターン1のイベント
         function turn1Event() {
             if (turn === 1) {
@@ -502,7 +536,7 @@ const imagePaths = {
                 eventMenu.style.display = 'none';
             }
         });
-        
+
         function nextTurn() {
             turn++;
             document.getElementById('turnDisplay').textContent = turn;
@@ -534,10 +568,51 @@ const imagePaths = {
             return null;
         }
 
-        function placeUnit(x, y) {
-            ctx.drawImage(displayImage, 0, 0);
-            ctx.fillStyle = 'red';
-            ctx.fillRect(x - 5, y - 5, 10, 10);
+        // 実行ボタンのクリックイベントリスナー
+        executeCommandButton.addEventListener('click', () => {
+            const command = commandInput.value;
+            handleCommandInput(command);
+            commandInput.value = ''; // 入力欄をクリア
+        });
+
+        // コマンド入力処理関数
+        function handleCommandInput(command) {
+            const parts = command.split(' ');
+            console.log(parts); // デバッグ用
+
+            if (parts[0] === 'placeUnit') {
+                if (parts.length !== 5) {
+                    alert('コマンドの形式が正しくありません。例: placeUnit <国ID> <ユニットタイプ> <X座標> <Y座標>');
+                    return;
+                }
+
+                const countryId = parts[1];
+                const unitType = parts[2];
+                const x = parseInt(parts[3]);
+                const y = parseInt(parts[4]);
+
+                if (isNaN(x) || isNaN(y)) {
+                    alert('座標は数値で入力してください。');
+                    return;
+                }
+
+                placeUnit(countryId, unitType, x, y);
+            } else {
+                alert('不明なコマンドです。');
+            }
+        }
+
+        // ユニット配置関数
+        function placeUnit(countryId, unitType, x, y) {
+            const unit = {
+                id: unitIdCounter++, // ユニットIDを付与
+                type: unitType,
+                countryId: countryId, // 文字列のまま設定
+                x: x,
+                y: y
+            };
+            units.push(unit);
+            drawUnits();
         }
 
         function getProvinceCenter(x, y) {
@@ -683,7 +758,7 @@ function produceUnit(unitType) {
     let baseCoord;
     if (unitType === 'ship') {
         provinceId = base.shipProvinceId;
-        baseCoord = baseCoordinates[base.name + '(艦)']; // 艦艇用の座標を使用
+        baseCoord = baseCoordinates[base.name + '(艦)'];
     } else {
         baseCoord = baseCoordinates[base.name];
     }
@@ -694,45 +769,47 @@ function produceUnit(unitType) {
     }
 
     const unit = {
+        id: unitIdCounter++, // ユニットIDを付与
         type: unitType,
         countryId: selectedCountryId,
-        x: baseCoord.x, // 基地の座標を直接使用
-        y: baseCoord.y  // 基地の座標を直接使用
+        x: baseCoord.x,
+        y: baseCoord.y
     };
     units.push(unit);
     drawUnits();
 }
         
-function preloadUnitImages() {
-    ['infantry', 'tank', 'ship'].forEach(type => {
-        ['blue', 'red', 'green'].forEach(color => {
-            const img = new Image();
-            img.onload = function() {
-                unitImages[`${color}_${type}`] = img;
-            };
-            img.src = imagePaths[`${color}_${type}`]; // 定義したパスを使用
-        });
-    });
-}
-        
-// ユニット描画関数
-function drawUnits() {
-    ctx.drawImage(displayImage, 0, 0); // 地図を再描画
-    units.forEach(unit => {
-        let color = '';
-        if (unit.countryId >= 1 && unit.countryId <= 20) {
-            color = 'blue';
-        } else if (unit.countryId >= 21 && unit.countryId <= 40) {
-            color = 'red';
-        } else if (unit.countryId >= 41 && unit.countryId <= 60) {
-            color = 'green';
+        function preloadUnitImages() {
+            ['infantry', 'tank', 'ship'].forEach(type => {
+                ['blue', 'red', 'green'].forEach(color => {
+                    const img = new Image();
+                    img.onload = function() {
+                        unitImages[`${color}_${type}`] = img;
+                    };
+                    img.src = imagePaths[`${color}_${type}`]; // 定義したパスを使用
+                });
+            });
         }
-        const img = unitImages[`${color}_${unit.type}`];
-        if (img && img.complete) { // 画像が読み込み済みか確認
-            ctx.drawImage(img, unit.x - 10, unit.y - 10, 20, 20); // ユニットを描画
+
+        // ユニット描画関数
+        function drawUnits() {
+            ctx.drawImage(displayImage, 0, 0); // 地図を再描画
+            units.forEach(unit => {
+                let color = '';
+                if (unit.countryId >= 1 && unit.countryId <= 20) {
+                    color = 'blue';
+                } else if (unit.countryId >= 21 && unit.countryId <= 40) {
+                    color = 'red';
+                } else if (unit.countryId >= 41 && unit.countryId <= 60) {
+                    color = 'green';
+                }
+                const img = unitImages[`${color}_${unit.type}`];
+                if (img) {
+                    ctx.drawImage(img, unit.x - 10, unit.y - 10, 20, 20); // ユニットを描画
+                }
+            });
         }
-    });
-}
+
         function displayBases() {
             let currentBaseName = null; // 現在表示されている基地の名前を追跡
 
@@ -767,6 +844,56 @@ function drawUnits() {
                 });
             });
         }
+
+        function displayUnitStats(unit) {
+            const countryId = unit.countryId; // 文字列のまま取得
+            if (!unitStats[countryId]) {
+                console.error(`Unit stats not found for country ID: ${countryId}`);
+                unitSideMenu.style.display = 'none'; // サイドメニューを非表示
+                return;
+            }
+            const stats = unitStats[countryId][unit.type];
+            const countryName = getCountryName(unit.countryId); // 国名を取得
+
+        // ユニットタイプを日本語に変換
+        let unitTypeJapanese = '';
+    switch (unit.type) {
+        case 'infantry':
+            unitTypeJapanese = '歩兵';
+            break;
+        case 'tank':
+            unitTypeJapanese = '戦車';
+            break;
+        case 'ship':
+            unitTypeJapanese = '艦艇';
+            break;
+        default:
+            unitTypeJapanese = unit.type; // デフォルトはそのまま
+    }
+
+    unitSideMenu.innerHTML = `
+        <h2>${countryName} ${unitTypeJapanese} (ID: ${unit.id})</h2>
+        <p>体力: ${stats.hp}</p>
+        <p>攻撃力: ${stats.atk}</p>
+        <p>防御力: ${stats.def}</p>
+        <p>移動力: ${stats.mov}</p>
+        <p>射程: ${stats.range}</p>
+        <p>生産コスト: ${stats.cost}</p>
+        <p>生産時間: ${stats.time}</p>
+    `;
+    unitSideMenu.style.display = 'block';
+}
+
+// 国名を取得する関数
+function getCountryName(countryId) {
+    // 国IDと国名の対応関係を定義
+    const countryNames = {
+        '01': 'スクニューネ軍', '03': 'シュトルスカ軍', '04': 'カラベイ軍',
+        '21': 'スングィールタ軍', '22': 'スィジュールタ軍', '23': 'ヴァラリア軍', '24': 'ドゥルグァタン軍', '25': 'シレナル派ニグラシオ軍',
+        '41': 'ユスィネ派ニグラシオ軍', '42': 'スカカルテ軍'
+    };
+    return countryNames[countryId];
+    }
 
         function updateFixedElements() {
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -816,15 +943,17 @@ function drawUnits() {
         console.log(`Unit: (${unit.x}, ${unit.y}), Click: (${x}, ${y}), Distance: ${distance}`);
     });
 
-        if (clickedUnit) {
-            // ユニットがクリックされた場合
-            if (selectedUnit === clickedUnit) {
-                // 同じユニットが再度クリックされた場合、選択解除
-                selectedUnit = null;
-            } else {
-                // 異なるユニットがクリックされた場合、選択
-                selectedUnit = clickedUnit;
-            }
+    if (clickedUnit) {
+        // ユニットがクリックされた場合
+        if (selectedUnit === clickedUnit) {
+            // 同じユニットが再度クリックされた場合、選択解除
+            selectedUnit = null;
+            unitSideMenu.style.display = 'none'; // サイドメニューを非表示
+        } else {
+            // 異なるユニットがクリックされた場合、選択
+            selectedUnit = clickedUnit;
+            displayUnitStats(selectedUnit); // ユニットのステータスを表示
+        }
         } else if (selectedUnit) {
             // ユニットが選択されている場合、移動処理
             const targetProvinceId = getRoadId(x, y);

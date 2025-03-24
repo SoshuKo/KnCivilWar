@@ -94,7 +94,6 @@
     <div id="sideMenu">
         <h2>基地情報</h2>
         <p id="baseName"></p>
-        <p id="baseFaction">陣営: 不明</p> <!-- 陣営情報を表示する要素を追加 -->
         <div id="productionButtons">
             <button data-unit-type="infantry">歩兵生産</button>
             <button data-unit-type="tank">戦車生産</button>
@@ -105,15 +104,6 @@
     <div id="turnControls">
         <p>ターン: <span id="turnDisplay">1</span></p>
         <button id="nextTurnButton">ターンを前進</button>
-    </div>
-    <div id="provinceIdDisplay" style="position: fixed; top: 100px; right: 10px; background-color: rgba(255, 255, 255, 0.7); padding: 5px; border: 1px solid black;">
-        プロヴィンスID: 不明
-    </div>
-    <div id="resources" style="position: fixed; top: 10px; right: 120px; background-color: rgba(255, 255, 255, 0.7); padding: 5px; border: 1px solid black;">
-        資源: <span id="resourceDisplay">10</span>
-    </div>
-    <div id="productionQueueDisplay" style="position: fixed; top: 10px; right: 300px; background-color: rgba(255, 255, 255, 0.7); padding: 5px; border: 1px solid black;">
-        生産中: <span id="productionQueueList">なし</span>
     </div>
     <div id="eventMenu">
         <h2>イベント</h2>
@@ -128,8 +118,6 @@
     </div>
     <img id="flagDisplay" src="" alt="選択した国の国旗">
     <div id="unitSideMenu" class="side-menu" style="display: none;">
-        <input type="number" id="targetUnitIdInput" placeholder="攻撃対象ID">
-        <button id="attackButton">攻撃</button>
     </div>
     <div id="commandInputContainer" style="position: fixed; bottom: 10px; left: 10px; background-color: white; padding: 5px; border: 1px solid black;">
         <input type="text" id="commandInput" placeholder="コマンドを入力">
@@ -137,12 +125,6 @@
     </div>
     <script>
         let turn = 1; // ターン数を初期化
-        let resources = 10; // 資源の初期値
-        let cpu1Resources = 10; // CPU1の資源
-        let cpu2Resources = 10; // CPU2の資源
-        const cpu1ProductionQueue = []; // CPU1の生産待機キュー
-        const cpu2ProductionQueue = []; // CPU2の生産待機キュー
-        let isCpuBattleEnabled = true; // デフォルトはオン
         const eventMenu = document.getElementById('eventMenu');
         const flagDisplay = document.getElementById('flagDisplay');
         const units = []; // ユニットを格納する配列
@@ -164,7 +146,6 @@
         const coordinatesDiv = document.getElementById('coordinates');
         const sideMenu = document.getElementById('sideMenu');
         const baseNameDisplay = document.getElementById('baseName');
-        const productionQueue = []; // 生産待機キュー
         let unitIdCounter = 1; // グローバルスコープで宣言
         const commandInput = document.getElementById('commandInput');
         const executeCommandButton = document.getElementById('executeCommandButton');
@@ -176,11 +157,11 @@
             { name: 'ガケ', minX: 793, maxX: 934, minY: 596, maxY: 722, provinceId: 64 },
             { name: 'スツューフテ', minX: 615, maxX: 677, minY: 667, maxY: 712, provinceId: 79 },
             { name: 'スカカルテ', minX: 1094, maxX: 1166, minY: 736, maxY: 804, provinceId: 104 },
-            { name: 'スプミウスタルテ', minX: 883, maxX: 933, minY: 771, maxY: 848, provinceId: 112 },
-            { name: 'ルイネ', minX: 510, maxX: 597, minY: 795.3333129882812, maxY: 915.3333129882812, provinceId: 119, shipProvinceId: 118 },
-            { name: 'ルルペ', minX: 668, maxX: 725, minY: 795.3333129882812, maxY: 853.3333129882812, provinceId: 120, shipProvinceId: 118 },
-            { name: 'スツィーフタルテ', minX: 755, maxX: 771, minY: 986, maxY: 996, provinceId: 141 },
-            { name: 'シュメケルペ', minX: 682, maxX: 747, minY: 1119.3333129882812, maxY: 1235.3333129882812, provinceId: 146, shipProvinceId: 145 }
+            { name: 'スプミウスタルテ', minX: 883, maxX: 933, minY: 771, maxY: 848, provinceId: 113 },
+            { name: 'ルイネ', minX: 510, maxX: 597, minY: 795.3333129882812, maxY: 915.3333129882812, provinceId: 120, shipProvinceId: 118 },
+            { name: 'ルルペ', minX: 668, maxX: 725, minY: 795.3333129882812, maxY: 853.3333129882812, provinceId: 121, shipProvinceId: 118 },
+            { name: 'スツィーフタルテ', minX: 755, maxX: 771, minY: 986, maxY: 996, provinceId: 142 },
+            { name: 'シュメケルペ', minX: 682, maxX: 747, minY: 1119.3333129882812, maxY: 1235.3333129882812, provinceId: 147, shipProvinceId: 145 }
         ];
 
 // 画像ファイルのパスを定義
@@ -195,7 +176,7 @@ const imagePaths = {
     red_ship: 'red_ship.PNG',
     green_ship: 'green_ship.PNG'
 };
-
+        
         // プロヴィンスIDと隣接プロヴィンスの定義
         const provinceColors = {
     '1': 'rgb(32, 0, 255)',
@@ -305,6 +286,7 @@ const imagePaths = {
     '105': 'rgb(80, 208, 255)',
     '106': 'rgb(96, 208, 255)',
     '107': 'rgb(112, 0, 255)',
+    '108': 'rgb(0, 0, 0)',
     '109': 'rgb(0, 48, 255)',
     '110': 'rgb(0, 0, 255)',
     '111': 'rgb(112, 16, 255)',
@@ -322,6 +304,7 @@ const imagePaths = {
     '123': 'rgb(112, 112, 255)',
     '124': 'rgb(112, 128, 255)',
     '125': 'rgb(112, 144, 255)',
+    '126': 'rgb(0, 0, 0)',
     '127': 'rgb(112, 176, 255)',
     '128': 'rgb(112, 192, 255)',
     '129': 'rgb(112, 208, 255)',
@@ -369,7 +352,7 @@ const imagePaths = {
     '20': ['16', '19', '22', '29', '30'],
     '21': ['17', '23', '25'],
     '22': ['16', '20', '29'],
-    '23': ['17', '21', '24', '25', '28', '32'],
+    '23': ['17', '24', '25', '28', '32'],
     '24': ['17', '19', '23', '26', '32', '33'],
     '25': ['21', '23', '28', '32'],
     '26': ['19', '24', '30', '31', '33', '35', '38', '39'],
@@ -413,7 +396,7 @@ const imagePaths = {
     '64': ['44', '53', '58', '59', '73', '76', '80', '89', '94', '95'],
     '65': ['57', '86', '88'],
     '66': ['41', '56', '67'],
-    '67': ['41', '46', '56', '61', '66', '68', '74', '75', '78'],
+    '67': ['41', '46', '56', '61', '66', '68', '74', '75', '78', '79'],
     '68': ['46', '54', '62', '67', '74', '77', '79', '83', '84', '87'],
     '69': ['43', '55', '72'],
     '70': [],
@@ -454,6 +437,7 @@ const imagePaths = {
     '105': [],
     '106': ['89', '98', '103', '115'],
     '107': ['72', '92', '111', '112', '124'],
+    '108': [],
     '109': ['96', '97', '118'],
     '110': ['93', '96', '102', '119'],
     '111': ['72', '101', '107', '124'],
@@ -471,6 +455,7 @@ const imagePaths = {
     '123': ['113', '115', '124', '125', '127'],
     '124': ['107', '111', '112', '115', '123', '127', '129'],
     '125': ['113', '120', '123', '127', '131', '135', '136'],
+    '126': [],
     '127': ['123', '124', '125', '129', '131', '132'],
     '128': [],
     '129': ['124', '127', '130', '132', '133'],
@@ -486,164 +471,13 @@ const imagePaths = {
     '139': ['136', '141'],
     '140': ['131', '133', '137', '142', '143'],
     '141': ['136', '139'],
-    '142': ['136', '140', '143', '146'],
+    '142': ['136', '140', '142', '143', '146'],
     '143': ['140', '142'],
     '144': ['147'],
     '145': ['134', '148'],
     '146': ['136', '142'],
     '147': ['144', '148'],
     '148': ['145', '147'],
-};
-
-const provinceCenters = {
-    "1": { x: 486, y: 86 },
-    "2": { x: 418, y: 71 },
-    "3": { x: 394, y: 129 },
-    "4": { x: 450, y: 105 },
-    "5": { x: 406, y: 93 },
-    "6": { x: 531, y: 148 },
-    "7": { x: 345, y: 226 },
-    "8": { x: 477, y: 166 },
-    "9": { x: 507, y: 187 },
-    "10": { x: 677, y: 233 },
-    "11": { x: 466, y: 231 },
-    "12": { x: 579, y: 239 },
-    "13": { x: 535, y: 217 },
-    "14": { x: 506, y: 213 },
-    "15": { x: 603, y: 268 },
-    "16": { x: 452, y: 294 },
-    "17": { x: 742, y: 302 },
-    "18": { x: 629, y: 305 },
-    "19": { x: 601, y: 362 },
-    "20": { x: 524, y: 364 },
-    "21": { x: 880, y: 321 },
-    "22": { x: 451, y: 355 },
-    "23": { x: 806, y: 368 },
-    "24": { x: 753, y: 404 },
-    "25": { x: 909, y: 385 },
-    "26": { x: 690, y: 435 },
-    "27": { x: 984, y: 385 },
-    "28": { x: 957, y: 445 },
-    "29": { x: 494, y: 437 },
-    "30": { x: 617, y: 488 },
-    "31": { x: 638, y: 425 },
-    "32": { x: 890, y: 466 },
-    "33": { x: 794, y: 497 },
-    "34": { x: 447, y: 518 },
-    "35": { x: 727, y: 501 },
-    "36": { x: 558, y: 523 },
-    "37": { x: 875, y: 508 },
-    "38": { x: 674, y: 496 },
-    "39": { x: 701, y: 510 },
-    "40": { x: 917, y: 543 },
-    "41": { x: 695, y: 560 },
-    "42": { x: 748, y: 544 },
-    "43": { x: 1084, y: 595 },
-    "44": { x: 825, y: 577 },
-    "45": { x: 498, y: 554 },
-    "46": { x: 634, y: 590 },
-    "47": { x: 961, y: 568 },
-    "48": { x: 1033, y: 603 },
-    "49": { x: 1007, y: 579 },
-    "50": { x: 434, y: 633 },
-    "51": { x: 745, y: 584 },
-    "52": { x: 485, y: 585 },
-    "53": { x: 917, y: 602 },
-    "54": { x: 565, y: 602 },
-    "55": { x: 1160, y: 647 },
-    "56": { x: 706, y: 601 },
-    "57": { x: 353, y: 644 },
-    "58": { x: 767, y: 640 },
-    "59": { x: 940, y: 631 },
-    "60": { x: 531, y: 612 },
-    "61": { x: 735, y: 633 },
-    "62": { x: 516, y: 643 },
-    "63": { x: 990, y: 628 },
-    "64": { x: 852, y: 655 },
-    "65": { x: 244, y: 663 },
-    "66": { x: 685, y: 609 },
-    "67": { x: 694, y: 641 },
-    "68": { x: 607, y: 653 },
-    "69": { x: 1113, y: 658 },
-    "70": { x: 967, y: 640 },
-    "71": { x: 970, y: 662 },
-    "72": { x: 1059, y: 706 },
-    "73": { x: 789, y: 659 },
-    "74": { x: 685, y: 672 },
-    "75": { x: 680, y: 654 },
-    "76": { x: 794, y: 680 },
-    "77": { x: 518, y: 687 },
-    "78": { x: 738, y: 700 },
-    "79": { x: 645, y: 689 },
-    "80": { x: 926, y: 669 },
-    "81": { x: 909, y: 688 },
-    "82": { x: 964, y: 706 },
-    "83": { x: 594, y: 702 },
-    "84": { x: 538, y: 713 },
-    "85": { x: 473, y: 717 },
-    "86": { x: 388, y: 721 },
-    "87": { x: 563, y: 720 },
-    "88": { x: 278, y: 716 },
-    "89": { x: 796, y: 718 },
-    "90": { x: 928, y: 694 },
-    "91": { x: 691, y: 719 },
-    "92": { x: 939, y: 740 },
-    "93": { x: 585, y: 746 },
-    "94": { x: 900, y: 727 },
-    "95": { x: 858, y: 729 },
-    "96": { x: 642, y: 757 },
-    "97": { x: 682, y: 746 },
-    "98": { x: 767, y: 766 },
-    "99": { x: 733, y: 744 },
-    "100": { x: 483, y: 762 },
-    "101": { x: 1078, y: 762 },
-    "102": { x: 534, y: 778 },
-    "103": { x: 865, y: 767 },
-    "104": { x: 1132, y: 773 },
-    "105": { x: 1165, y: 738 },
-    "106": { x: 816, y: 770 },
-    "107": { x: 980, y: 744 },
-    "108": { x: 964, y: 780 },
-    "109": { x: 676, y: 767 },
-    "110": { x: 596, y: 787 },
-    "111": { x: 983, y: 805 },
-    "112": { x: 909, y: 812 },
-    "113": { x: 756, y: 814 },
-    "114": { x: 430, y: 793 },
-    "115": { x: 851, y: 816 },
-    "116": { x: 483, y: 813 },
-    "117": { x: 638, y: 858 },
-    "118": { x: 707, y: 799 },
-    "119": { x: 553, y: 860 },
-    "120": { x: 696, y: 825 },
-    "121": { x: 366, y: 851 },
-    "122": { x: 446, y: 880 },
-    "123": { x: 831, y: 851 },
-    "124": { x: 918, y: 853 },
-    "125": { x: 731, y: 892 },
-    "126": { x: 893, y: 858 },
-    "127": { x: 826, y: 880 },
-    "128": { x: 890, y: 861 },
-    "129": { x: 894, y: 884 },
-    "130": { x: 924, y: 932 },
-    "131": { x: 800, y: 931 },
-    "132": { x: 853, y: 924 },
-    "133": { x: 883, y: 944 },
-    "134": { x: 580, y: 1006 },
-    "135": { x: 750, y: 942 },
-    "136": { x: 715, y: 1030 },
-    "137": { x: 845, y: 972 },
-    "138": { x: 785, y: 962 },
-    "139": { x: 750, y: 973 },
-    "140": { x: 831, y: 1010 },
-    "141": { x: 762, y: 991 },
-    "142": { x: 788, y: 1083 },
-    "143": { x: 848, y: 1059 },
-    "144": { x: 802, y: 1165 },
-    "145": { x: 577, y: 1172 },
-    "146": { x: 713, y: 1175 },
-    "147": { x: 788, y: 1258 },
-    "148": { x: 568, y: 1260 }
 };
 
 // ユニットの性能データ
@@ -658,12 +492,6 @@ const unitStats = {
     '25': { infantry: { hp: 2, atk: 3, def: 2, mov: 4, range: 1, cost: 2, time: 2 }, tank: { hp: 3, atk: 4, def: 3, mov: 3, range: 3, cost: 3, time: 3 }, ship: { hp: 2, atk: 3, def: 2, mov: 4, range: 3, cost: 2, time: 2 } },
     '41': { infantry: { hp: 5, atk: 5, def: 5, mov: 5, range: 2, cost: 7, time: 7 }, tank: { hp: 7, atk: 7, def: 7, mov: 4, range: 4, cost: 6, time: 6 }, ship: { hp: 5, atk: 5, def: 5, mov: 5, range: 5, cost: 7, time: 7 } },
     '42': { infantry: { hp: 5, atk: 5, def: 5, mov: 3, range: 5, cost: 7, time: 7 }, tank: { hp: 7, atk: 7, def: 7, mov: 2, range: 5, cost: 6, time: 6 }, ship: { hp: 5, atk: 5, def: 5, mov: 3, range: 5, cost: 7, time: 7 } }
-};
-
-const factions = {
-    "スクニューネ陣営": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"],
-    "人民義勇軍陣営": ["21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40"],
-    "少数民族陣営": ["41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60"]
 };
         
         displayImage.onload = function() {
@@ -680,18 +508,10 @@ const factions = {
             dataCtx.drawImage(dataImage, 0, 0);
         }
 
-        // グローバルスコープで定義
-        let mapWidth = 0;
-        let mapHeight = 0;
-
         roadImage.onload = function() {
             roadCanvas.width = roadImage.width;
             roadCanvas.height = roadImage.height;
             roadCtx.drawImage(roadImage, 0, 0);
-            const mapWidth = roadImage.width;
-            const mapHeight = roadImage.height;
-
-            console.log(`Map dimensions: width=${mapWidth}, height=${mapHeight}`);
         }
 
         displayImage.src = 'スクニューネ内戦マップ1.png';
@@ -717,94 +537,11 @@ const factions = {
             }
         });
 
-        function updateProductionQueueDisplay() {
-            const productionQueueList = document.getElementById('productionQueueList');
-            if (productionQueue.length === 0) {
-                productionQueueList.textContent = 'なし';
-            } else {
-                productionQueueList.innerHTML = productionQueue
-                    .map(unit => `${unit.type} (残り${unit.remainingTime}ターン)`)
-                    .join(', ');
-            }
+        function nextTurn() {
+            turn++;
+            document.getElementById('turnDisplay').textContent = turn;
+            turn1Event(); // ターンが変わるたびにイベントチェック
         }
-
-        function updateProductionButtons() {
-            const buttons = document.querySelectorAll('#productionButtons button');
-            buttons.forEach(button => {
-                const unitType = button.dataset.unitType;
-                const unitCost = unitStats[selectedCountryId]?.[unitType]?.cost;
-
-                if (unitCost !== undefined && resources >= unitCost) {
-                    button.disabled = false; // 資源が足りている場合は有効化
-                } else {
-                    button.disabled = true; // 資源が足りない場合は無効化
-                }
-            });
-        }
-
-        function updateResources() {
-            resources += 3; // 資源を3増加
-            document.getElementById('resourceDisplay').textContent = resources; // 資源を更新
-        }
-
-        function processProductionQueue() {
-    for (let i = productionQueue.length - 1; i >= 0; i--) {
-        const unit = productionQueue[i];
-        unit.remainingTime--; // 生産時間を減少
-
-        if (unit.remainingTime <= 0) {
-            // 生産完了、ユニットを配置
-            units.push({
-                id: unit.id,
-                type: unit.type,
-                countryId: unit.countryId,
-                x: unit.x,
-                y: unit.y,
-                hp: unit.hp,
-                def: unit.def,
-                mov: unit.mov,
-                currentMov: unit.currentMov
-            });
-            productionQueue.splice(i, 1); // キューから削除
-        }
-    }
-    updateProductionQueueDisplay(); // 生産中ユニットの表示を更新
-}
-
-// ターン開始時にCPUの移動を実行
-function nextTurn() {
-    turn++;
-    units.forEach(unit => {
-        unit.currentMov = unit.mov; // 移動力を初期値まで回復
-    });
-    healUnits();
-    updateResources(); // プレイヤーの資源を増加
-    processProductionQueue(); // プレイヤーの生産待機キューを処理
-    updateProductionButtons(); // 生産ボタンの状態を更新
-
-    // CPUの資源を増加
-    cpu1Resources += 3;
-    cpu2Resources += 3;
-
-    // CPUの生産処理
-    const cpu1Faction = selectedCountryId >= 1 && selectedCountryId <= 20 ? "人民義勇軍陣営" : "スクニューネ陣営";
-    const cpu2Faction = selectedCountryId >= 1 && selectedCountryId <= 40 ? "少数民族陣営" : "人民義勇軍陣営";
-
-    const cpu1Units = units.filter(unit => factions[cpu1Faction].includes(unit.countryId));
-    const cpu2Units = units.filter(unit => factions[cpu2Faction].includes(unit.countryId));
-
-    cpu1Resources = processCpuProduction(cpu1Resources, cpu1ProductionQueue, cpu1Units, cpu1Faction);
-    cpu2Resources = processCpuProduction(cpu2Resources, cpu2ProductionQueue, cpu2Units, cpu2Faction);
-
-    // CPUの生産待機キューを処理
-    processCpuProductionQueue(cpu1ProductionQueue, cpu1Units);
-    processCpuProductionQueue(cpu2ProductionQueue, cpu2Units);
-
-    if (isCpuBattleEnabled) cpuMove(); // CPUの移動を実行
-    console.log(`ターン ${turn} が開始しました。`);
-    document.getElementById('turnDisplay').textContent = turn;
-    turn1Event(); // ターンが変わるたびにイベントチェック
-}
 
         turn1Event();
 
@@ -817,35 +554,19 @@ function nextTurn() {
         }
 
         function getRoadColor(x, y) {
-    // 座標が有効かどうかを確認
-    if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        console.error(`Invalid coordinates passed to getRoadColor: x=${x}, y=${y}`);
-        return null; // 無効な座標の場合は null を返す
-    }
-
-    const pixelData = roadCtx.getImageData(x, y, 1, 1).data;
-    return `rgb(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]})`;
-}
-
-function getRoadId(x, y) {
-    if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        console.error(`Invalid coordinates passed to getRoadId: x=${x}, y=${y}`);
-        return null;
-    }
-
-    const color = getRoadColor(x, y);
-    if (!color) {
-        console.error(`Failed to get road color for coordinates: x=${x}, y=${y}`);
-        return null;
-    }
-
-    for (const id in provinceColors) {
-        if (provinceColors[id] === color) {
-            return id;
+            const pixelData = roadCtx.getImageData(x, y, 1, 1).data;
+            return `rgb(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]})`;
         }
-    }
-    return null;
-}
+
+        function getRoadId(x, y) {
+            const color = getRoadColor(x, y);
+            for (const id in provinceColors) {
+                if (provinceColors[id] === color) {
+                    return id;
+                }
+            }
+            return null;
+        }
 
         // 実行ボタンのクリックイベントリスナー
         executeCommandButton.addEventListener('click', () => {
@@ -876,47 +597,23 @@ function getRoadId(x, y) {
                 }
 
                 placeUnit(countryId, unitType, x, y);
-                    } else if (parts[0] === 'cpuBattle') {
-                        if (parts[1] === 'on') {
-                            isCpuBattleEnabled = true;
-                            alert('CPU対戦機能をオンにしました。');
-                        } else if (parts[1] === 'off') {
-                            isCpuBattleEnabled = false;
-                            alert('CPU対戦機能をオフにしました。');
-                        } else {
-                            alert('コマンドの形式が正しくありません。例: cpuBattle on または cpuBattle off');
-                        }
-                    } else {
-                        alert('不明なコマンドです。');
-                    }
-                }
+            } else {
+                alert('不明なコマンドです。');
+            }
+        }
 
-// ユニット配置関数
-function placeUnit(countryId, unitType, x, y) {
-    if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        console.error(`Invalid coordinates for placing unit: x=${x}, y=${y}`);
-        return;
-    }
-
-    if (!unitStats[countryId]) {
-        console.error(`Unit stats not found for country ID: ${countryId}`);
-        return;
-    }
-
-    const unit = {
-        id: unitIdCounter++,
-        type: unitType,
-        countryId: countryId,
-        x: x,
-        y: y,
-        hp: unitStats[countryId][unitType].hp,
-        def: unitStats[countryId][unitType].def,
-        mov: unitStats[countryId][unitType].mov, // 初期移動力
-        currentMov: unitStats[countryId][unitType].mov // 現在の移動力
-    };
-    units.push(unit);
-    drawUnits();
-}
+        // ユニット配置関数
+        function placeUnit(countryId, unitType, x, y) {
+            const unit = {
+                id: unitIdCounter++, // ユニットIDを付与
+                type: unitType,
+                countryId: countryId, // 文字列のまま設定
+                x: x,
+                y: y
+            };
+            units.push(unit);
+            drawUnits();
+        }
 
         function getProvinceCenter(x, y) {
             const provincePixels = [];
@@ -1033,7 +730,7 @@ const baseCoordinates = {
     'ステーネ': { x: 356.5, y: 231 },
     'ブラウジア': { x: 446.5, y: 346.5 },
     'スミウルタ': { x: 640.5, y: 427.5 },
-    'ブムァートネ': { x: 815, y: 360 },
+    'ブムァートネ': { x: 794, y: 376.8333282470703 },
     'ガケ': { x: 863.5, y: 659 },
     'スツューフテ': { x: 646, y: 689.5 },
     'スカカルテ': { x: 1130, y: 770 },
@@ -1057,41 +754,10 @@ function produceUnit(unitType) {
     const base = bases.find(b => b.name === baseNameDisplay.textContent);
     if (!base) return;
 
-    // 基地の存在するプロヴィンスに同じ陣営のユニットがいるか確認
-    const provinceId = base.provinceId;
-    const unitsInProvince = units.filter(unit => getRoadId(unit.x, unit.y) === String(provinceId));
-    const isSameFactionPresent = unitsInProvince.some(unit => {
-    // プレイヤーが選択した国が属する陣営を取得
-    const playerFaction = Object.keys(factions).find(faction =>
-        factions[faction].includes(selectedCountryId)
-    );
-
-    // プロヴィンス内のユニットがプレイヤーの陣営に属しているか確認
-    return playerFaction && factions[playerFaction].includes(unit.countryId);
-});
-
-    if (!isSameFactionPresent) {
-        alert('この基地のプロヴィンスに自分の陣営のユニットが存在しないため、生産できません。');
-        return;
-    }
-
-    const unitStatsForCountry = unitStats[selectedCountryId];
-    if (!unitStatsForCountry || !unitStatsForCountry[unitType]) {
-        console.error(`Unit stats not found for country ID: ${selectedCountryId}, unit type: ${unitType}`);
-        return;
-    }
-
-    const unitCost = unitStatsForCountry[unitType].cost;
-    const unitTime = unitStatsForCountry[unitType].time;
-
-    // 資源が足りない場合
-    if (resources < unitCost) {
-        alert('資源が不足しています。');
-        return;
-    }
-
+    let provinceId = base.provinceId;
     let baseCoord;
     if (unitType === 'ship') {
+        provinceId = base.shipProvinceId;
         baseCoord = baseCoordinates[base.name + '(艦)'];
     } else {
         baseCoord = baseCoordinates[base.name];
@@ -1102,29 +768,17 @@ function produceUnit(unitType) {
         return;
     }
 
-    const x = baseCoord.x;
-    const y = baseCoord.y;
-
-    resources -= unitCost;
-    document.getElementById('resourceDisplay').textContent = resources;
-
-    productionQueue.push({
-        id: unitIdCounter++,
+    const unit = {
+        id: unitIdCounter++, // ユニットIDを付与
         type: unitType,
         countryId: selectedCountryId,
-        x: x,
-        y: y,
-        hp: unitStats[selectedCountryId][unitType].hp,
-        def: unitStats[selectedCountryId][unitType].def,
-        mov: unitStats[selectedCountryId][unitType].mov, // 初期移動力
-        currentMov: unitStats[selectedCountryId][unitType].mov, // 現在の移動力
-        remainingTime: unitTime // 残り生産時間
-    });
-    updateProductionQueueDisplay(); // 生産中ユニットの表示を更新
-    updateProductionButtons(); // 生産ボタンの状態を更新
+        x: baseCoord.x,
+        y: baseCoord.y
+    };
+    units.push(unit);
+    drawUnits();
 }
         
-        // ユニット画像を事前に読み込む関数
         function preloadUnitImages() {
             ['infantry', 'tank', 'ship'].forEach(type => {
                 ['blue', 'red', 'green'].forEach(color => {
@@ -1135,31 +789,26 @@ function produceUnit(unitType) {
                     img.src = imagePaths[`${color}_${type}`]; // 定義したパスを使用
                 });
             });
+        }
 
         // ユニット描画関数
         function drawUnits() {
-    ctx.drawImage(displayImage, 0, 0); // 地図を再描画
-    units.forEach(unit => {
-        let color = '';
-        if (unit.countryId >= 1 && unit.countryId <= 20) {
-            color = 'blue';
-        } else if (unit.countryId >= 21 && unit.countryId <= 40) {
-            color = 'red';
-        } else if (unit.countryId >= 41 && unit.countryId <= 60) {
-            color = 'green';
+            ctx.drawImage(displayImage, 0, 0); // 地図を再描画
+            units.forEach(unit => {
+                let color = '';
+                if (unit.countryId >= 1 && unit.countryId <= 20) {
+                    color = 'blue';
+                } else if (unit.countryId >= 21 && unit.countryId <= 40) {
+                    color = 'red';
+                } else if (unit.countryId >= 41 && unit.countryId <= 60) {
+                    color = 'green';
+                }
+                const img = unitImages[`${color}_${unit.type}`];
+                if (img) {
+                    ctx.drawImage(img, unit.x - 10, unit.y - 10, 20, 20); // ユニットを描画
+                }
+            });
         }
-        const img = unitImages[`${color}_${unit.type}`];
-        if (img) {
-            if (!Number.isFinite(unit.x) || !Number.isFinite(unit.y)) {
-                console.error(`Invalid unit coordinates: ${JSON.stringify(unit)}`);
-                return;
-            }
-            ctx.drawImage(img, unit.x - 10, unit.y - 10, 20, 20); // ユニットを描画
-        } else {
-            console.error(`Unit image not found for ${color}_${unit.type}`);
-        }
-    });
-}
 
         function displayBases() {
             let currentBaseName = null; // 現在表示されている基地の名前を追跡
@@ -1185,16 +834,7 @@ function produceUnit(unitType) {
                         baseNameDisplay.textContent = base.name;
                         sideMenu.style.display = 'block';
                         currentBaseName = base.name;
-
-                                // 基地の陣営を判定してコンソールに出力
-                        const faction = getBaseFaction(base);
-                        console.log(`プロヴィンスの陣営: ${faction || 'なし'}`);
-
-                                // 陣営情報をサイドメニューに表示
-                        const baseFactionDisplay = document.getElementById('baseFaction');
-                        baseFactionDisplay.textContent = `陣営: ${faction || 'なし'}`;
                     }
-
                     // 艦艇生産ボタンの表示/非表示を制御
                     if (base.shipProvinceId) {
                         document.querySelector(`#sideMenu button[data-unit-type="ship"]`).style.display = 'inline-block';
@@ -1205,20 +845,18 @@ function produceUnit(unitType) {
             });
         }
 
-// ユニットのステータスを表示する関数
-function displayUnitStats(unit) {
-    const countryId = unit.countryId;
-    if (!unitStats[countryId]) {
-        console.error(`Unit stats not found for country ID: ${countryId}`);
-        unitSideMenu.style.display = 'none';
-        return;
-    }
-    const maxStats = unitStats[countryId][unit.type];
-    const stats = unitStats[countryId][unit.type];
-    const countryName = getCountryName(unit.countryId);
+        function displayUnitStats(unit) {
+            const countryId = unit.countryId; // 文字列のまま取得
+            if (!unitStats[countryId]) {
+                console.error(`Unit stats not found for country ID: ${countryId}`);
+                unitSideMenu.style.display = 'none'; // サイドメニューを非表示
+                return;
+            }
+            const stats = unitStats[countryId][unit.type];
+            const countryName = getCountryName(unit.countryId); // 国名を取得
 
-    // ユニットタイプを日本語に変換
-    let unitTypeJapanese = '';
+        // ユニットタイプを日本語に変換
+        let unitTypeJapanese = '';
     switch (unit.type) {
         case 'infantry':
             unitTypeJapanese = '歩兵';
@@ -1230,214 +868,21 @@ function displayUnitStats(unit) {
             unitTypeJapanese = '艦艇';
             break;
         default:
-            unitTypeJapanese = unit.type;
+            unitTypeJapanese = unit.type; // デフォルトはそのまま
     }
 
     unitSideMenu.innerHTML = `
         <h2>${countryName} ${unitTypeJapanese} (ID: ${unit.id})</h2>
-        <p>体力: <progress value="${unit.hp}" max="${maxStats.hp}"></progress> (${unit.hp}/${maxStats.hp})</p>
-        <p>防御力: <progress value="${unit.def}" max="${maxStats.def}"></progress> (${unit.def}/${maxStats.def})</p>
-        <p>移動力: <progress value="${unit.currentMov}" max="${maxStats.mov}"></progress> (${unit.currentMov}/${maxStats.mov})</p>
+        <p>体力: ${stats.hp}</p>
         <p>攻撃力: ${stats.atk}</p>
+        <p>防御力: ${stats.def}</p>
+        <p>移動力: ${stats.mov}</p>
         <p>射程: ${stats.range}</p>
         <p>生産コスト: ${stats.cost}</p>
         <p>生産時間: ${stats.time}</p>
-        <input type="number" id="targetUnitIdInput" placeholder="攻撃対象ID">
-        <button id="attackButton">攻撃</button>
     `;
     unitSideMenu.style.display = 'block';
-
-    const attackButton = document.getElementById('attackButton');
-    if (!factions["スクニューネ陣営"].includes(unit.countryId)) {
-        attackButton.disabled = true; // 自分の陣営以外のユニットの攻撃ボタンを無効化
-    } else {
-        attackButton.disabled = false; // 自分の陣営のユニットは有効化
-        attackButton.addEventListener('click', () => {
-            const targetUnitId = parseInt(document.getElementById('targetUnitIdInput').value);
-            attackUnit(unit.id, targetUnitId);
-        });
-    }
 }
-
-// 座標からカラーコードを取得する関数
-function getColorCodeFromCoordinates(x, y) {
-    // 座標を整数値に丸める
-    const roundedX = Math.round(x);
-    const roundedY = Math.round(y);
-
-    // 座標が roadImage の範囲内にあるか確認
-    if (roundedX < 0 || roundedX >= roadImage.width || roundedY < 0 || roundedY >= roadImage.height) {
-        console.error(`Error: Coordinates (${x}, ${y}) are out of range.`);
-        return null;
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = roadImage.width;
-    canvas.height = roadImage.height;
-    const context = canvas.getContext('2d');
-    context.drawImage(roadImage, 0, 0);
-    const imageData = context.getImageData(roundedX, roundedY, 1, 1);
-    const data = imageData.data;
-    return `rgb(${data[0]}, ${data[1]}, ${data[2]})`;
-}
-
-// カラーコードからプロヴィンス ID を取得する関数
-function getProvinceIdFromColorCode(colorCode) {
-    for (const provinceId in provinceColors) {
-        if (provinceColors[provinceId] === colorCode) {
-            return parseInt(provinceId);
-        }
-    }
-    return null;
-}
-
-function areProvincesAdjacent(provinceId1, provinceId2) {
-    console.log(`provinceId1: ${provinceId1}, type: ${typeof provinceId1}`);
-    console.log(`provinceId2: ${provinceId2}, type: ${typeof provinceId2}`);
-    console.log(`provinceAdjacencies[provinceId1]: ${provinceAdjacencies[provinceId1]}`);
-    console.log(`provinceAdjacencies[provinceId2]: ${provinceAdjacencies[provinceId2]}`);
-
-    if (provinceId1 === provinceId2) {
-        return true; // 同じプロヴィンスの場合は隣接している
-    }
-
-    if (!provinceAdjacencies[provinceId1] || !provinceAdjacencies[provinceId2]) {
-        return false; // どちらかのプロヴィンスが隣接関係を持たない場合は隣接していない
-    }
-
-    // indexOf メソッドを使用して隣接関係をチェック
-    const adjacent1 = provinceAdjacencies[provinceId1].indexOf(String(provinceId2)) !== -1;
-    const adjacent2 = provinceAdjacencies[provinceId2].indexOf(String(provinceId1)) !== -1;
-
-    console.log(`adjacent1: ${adjacent1}, adjacent2: ${adjacent2}`);
-
-    return adjacent1 && adjacent2;
-}
-
-// ユニットの攻撃関数
-function attackUnit(attackerId, targetId) {
-    const attacker = units.find(unit => unit.id === attackerId);
-    const target = units.find(unit => unit.id === targetId);
-
-    if (!attacker || !target) {
-        alert('攻撃対象が見つかりません。');
-        return;
-    }
-
-    if (attacker.currentMov <= 0) {
-        alert('このユニットは移動力が不足しているため攻撃できません。');
-        return;
-    }
-
-    // target オブジェクトに mov プロパティが存在するか確認
-    if (target.mov === undefined) {
-        // ユニットオブジェクトから mov プロパティを取得し、target オブジェクトに追加
-        const targetUnit = unitStats[target.countryId][target.type];
-        if (targetUnit && targetUnit.mov !== undefined) {
-            target.mov = targetUnit.mov;
-        } else {
-            console.error('Error: target.mov is undefined.');
-            return; // 攻撃を中断
-        }
-    }
-
-    // attacker オブジェクトに range プロパティが存在するか確認
-    if (attacker.range === undefined) {
-        // ユニットオブジェクトから range プロパティを取得し、attacker オブジェクトに追加
-        const attackerUnit = unitStats[attacker.countryId][attacker.type];
-        if (attackerUnit && attackerUnit.range !== undefined) {
-            attacker.range = attackerUnit.range;
-        } else {
-            console.error('Error: attacker.range is undefined.');
-            return; // 攻撃を中断
-        }
-    }
-
-    // 回避確率を計算
-    const evasionChance = target.mov * 5 - attacker.range * 5;
-    console.log(`evasionChance: ${evasionChance}`); // デバッグ用
-
-    // 回避の抽選
-    const randomValue = Math.random() * 100;
-    console.log(`randomValue: ${randomValue}`); // デバッグ用
-
-    if (randomValue < evasionChance) {
-        alert('攻撃は回避されました。');
-        console.log('攻撃は回避されました。'); // デバッグ用
-        attacker.currentMov--; // 回避されても移動力を1消費
-        return; // 攻撃を中断
-    }
-
-    // ユニットの存在するプロヴィンス ID を取得
-    const attackerColorCode = getColorCodeFromCoordinates(attacker.x, attacker.y);
-    const targetColorCode = getColorCodeFromCoordinates(target.x, target.y);
-
-    if (!attackerColorCode || !targetColorCode) {
-        alert('ユニットのプロヴィンス ID を取得できませんでした。');
-        return;
-    }
-
-    const attackerProvinceId = getProvinceIdFromColorCode(attackerColorCode);
-    const targetProvinceId = getProvinceIdFromColorCode(targetColorCode);
-
-    // プロヴィンス ID が null の場合、攻撃を中断
-    if (attackerProvinceId === null || targetProvinceId === null) {
-        alert('ユニットのプロヴィンス ID を取得できませんでした。');
-        return;
-    }
-
-    // 隣接または同じプロヴィンスにいるかチェック
-    if (!areProvincesAdjacent(attackerProvinceId, targetProvinceId)) {
-        alert('攻撃対象が隣接または同じプロヴィンスにいません。');
-        return;
-    }
-
-    // 攻撃処理
-    const attackerStats = unitStats[attacker.countryId][attacker.type];
-    const damage = attackerStats.atk;
-
-    if (target.def > 0) {
-        target.def -= damage;
-        if (target.def < 0) {
-            target.hp += target.def;
-            target.def = 0;
-        }
-    } else {
-        target.hp -= damage;
-    }
-
-    if (target.hp <= 0) {
-        units.splice(units.indexOf(target), 1);
-    }
-
-    attacker.currentMov--; // 攻撃で移動力を1消費
-    drawUnits();
-    if (selectedUnit) {
-        displayUnitStats(selectedUnit);
-    }
-}
-
-// ユニットの自然治癒関数
-function healUnits() {
-    units.forEach(unit => {
-        const maxStats = unitStats[unit.countryId][unit.type];
-        if (unit.hp < maxStats.hp) {
-            unit.hp++;
-        }
-    });
-    drawUnits();
-    if (selectedUnit) {
-        displayUnitStats(selectedUnit);
-    }
-}
-
-// 毎ターン実行する関数
-function gameLoop() {
-    setTimeout(gameLoop, 5000);
-}
-
-// ゲームループを開始
-gameLoop();
 
 // 国名を取得する関数
 function getCountryName(countryId) {
@@ -1449,44 +894,6 @@ function getCountryName(countryId) {
     };
     return countryNames[countryId];
     }
-
-function isEnemyInProvince(provinceId, currentUnit) {
-    // 指定されたプロヴィンスにいるユニットを検索
-    const enemyUnit = units.find(unit => {
-        const unitProvinceId = getRoadId(unit.x, unit.y);
-        if (unitProvinceId === provinceId) {
-            // 敵ユニットかどうかを判定
-            const isEnemy =
-                (currentUnit.countryId >= 1 && currentUnit.countryId <= 20 && unit.countryId >= 21 && unit.countryId <= 60) ||
-                (currentUnit.countryId >= 21 && currentUnit.countryId <= 40 && (unit.countryId <= 20 || unit.countryId >= 41)) ||
-                (currentUnit.countryId >= 41 && currentUnit.countryId <= 60 && unit.countryId <= 40);
-            return isEnemy;
-        }
-        return false;
-    });
-
-    return !!enemyUnit; // 敵ユニットが存在する場合はtrueを返す
-}
-
-// 基地の陣営を判定する関数
-function getBaseFaction(base) {
-    const provinceId = base.provinceId;
-    const unitsInProvince = units.filter(unit => getRoadId(unit.x, unit.y) === String(provinceId));
-
-    if (unitsInProvince.length === 0) {
-        return null; // ユニットがいない場合は陣営なし
-    }
-
-    const unitCountryIds = unitsInProvince.map(unit => unit.countryId);
-
-    for (const [factionName, countryIds] of Object.entries(factions)) {
-        if (unitCountryIds.some(countryId => countryIds.includes(countryId))) {
-            return factionName; // 該当する陣営を返す
-        }
-    }
-
-    return null; // 該当する陣営がない場合
-}
 
         function updateFixedElements() {
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -1507,360 +914,19 @@ function getBaseFaction(base) {
         // 初期位置を設定
         updateFixedElements();
 
-// CPUの移動ロジック
-function cpuMove() {
-    const cpuFactions = Object.keys(factions).filter(faction => !factions[faction].includes(selectedCountryId));
+        canvas.addEventListener('mousemove', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
 
-        // CPUの攻撃処理
-        cpuFactions.forEach(faction => {
-        const factionUnits = units.filter(unit => factions[faction].includes(unit.countryId));
-
-        factionUnits.forEach(unit => {
-            if (unit.currentMov <= 0) return; // 移動力がない場合はスキップ
-
-            // 隣接または同じプロヴィンスにいる敵ユニットを探す
-            const currentProvinceId = getRoadId(unit.x, unit.y);
-            const adjacentProvinces = provinceAdjacencies[currentProvinceId] || [];
-            const potentialTargets = units.filter(target => {
-                const targetProvinceId = getRoadId(target.x, target.y);
-                return (
-                    targetProvinceId &&
-                    (targetProvinceId === currentProvinceId || adjacentProvinces.includes(targetProvinceId)) &&
-                    factions[faction].every(countryId => countryId !== target.countryId) // 敵ユニットのみ
-                );
-            });
-
-            if (potentialTargets.length > 0) {
-                // 最初の敵ユニットを攻撃
-                const target = potentialTargets[0];
-                attackUnit(unit.id, target.id);
-            }
+            highlightProvince(x, y); // プロヴィンスをハイライト
+            coordinatesDiv.textContent = `X: ${x}, Y: ${y}`; // 座標を表示
         });
-    });
-
-    cpuFactions.forEach(faction => {
-        const factionUnits = units.filter(unit => factions[faction].includes(unit.countryId));
-
-        factionUnits.forEach(unit => {
-            if (unit.currentMov <= 0) return; // 移動力がない場合はスキップ
-
-            // 1: 基地のプロヴィンスに1ユニットを残す
-            const baseInProvince = bases.find(base => getRoadId(unit.x, unit.y) === String(base.provinceId));
-            if (baseInProvince) {
-                const unitsInBaseProvince = factionUnits.filter(u => getRoadId(u.x, u.y) === String(baseInProvince.provinceId));
-                if (unitsInBaseProvince.length === 1) return; // 1ユニットが基地に残る
-            }
-
-            // 2: 近くの陣営なし基地を目指す
-            const neutralBase = findClosestBase(unit, base => !getBaseFaction(base));
-            if (neutralBase) {
-                moveUnitTowards(unit, neutralBase);
-                return;
-            }
-
-            // 4: 近くの敵ユニットを目指す
-            const enemyUnit = findClosestEnemyUnit(unit, faction);
-            if (enemyUnit) {
-                moveUnitTowards(unit, enemyUnit);
-                return;
-            }
-        });
-    });
-
-    drawUnits(); // ユニットを再描画
-}
-
-// 指定条件に合う最も近い基地を探す
-function findClosestBase(unit, condition) {
-    let closestBase = null;
-    let minDistance = Infinity;
-
-    bases.forEach(base => {
-        if (!condition(base)) return;
-
-        const baseCoord = baseCoordinates[base.name];
-        if (!baseCoord || !Number.isFinite(baseCoord.x) || !Number.isFinite(baseCoord.y)) {
-            console.error(`Invalid base coordinates: ${JSON.stringify(baseCoord)}`);
-            return;
-        }
-
-        const distance = calculateDistance(unit.x, unit.y, baseCoord.x, baseCoord.y);
-        if (distance < minDistance) {
-            minDistance = distance;
-            closestBase = { ...base, x: baseCoord.x, y: baseCoord.y }; // 基地オブジェクトに座標を追加
-        }
-    });
-
-    return closestBase;
-}
-
-// 指定条件に合う最も近い敵ユニットを探す
-function findClosestEnemyUnit(unit, faction) {
-    let closestEnemy = null;
-    let minDistance = Infinity;
-
-    units.forEach(enemy => {
-        if (factions[faction].includes(enemy.countryId)) return; // 同じ陣営はスキップ
-
-        const distance = calculateDistance(unit.x, unit.y, enemy.x, enemy.y);
-        if (distance < minDistance) {
-            minDistance = distance;
-            closestEnemy = enemy;
-        }
-    });
-
-    return closestEnemy;
-}
-
-function findPath(startProvinceId, targetProvinceId) {
-    if (startProvinceId === targetProvinceId) {
-        return [startProvinceId]; // 同じプロヴィンスの場合、経路は1つだけ
-    }
-
-    const queue = [[startProvinceId]]; // 探索キュー（経路を格納）
-    const visited = new Set(); // 訪問済みプロヴィンスを記録
-
-    while (queue.length > 0) {
-        const path = queue.shift(); // キューから経路を取得
-        const currentProvinceId = path[path.length - 1]; // 現在のプロヴィンスID
-
-        if (visited.has(currentProvinceId)) {
-            continue; // 既に訪問済みの場合はスキップ
-        }
-
-        visited.add(currentProvinceId); // 現在のプロヴィンスを訪問済みに追加
-
-        const neighbors = provinceAdjacencies[currentProvinceId] || []; // 隣接プロヴィンスを取得
-        for (const neighbor of neighbors) {
-            if (visited.has(neighbor)) {
-                continue; // 隣接プロヴィンスが訪問済みの場合はスキップ
-            }
-
-            const newPath = [...path, neighbor]; // 新しい経路を作成
-            if (neighbor === targetProvinceId) {
-                return newPath; // 目的地に到達した場合、経路を返す
-            }
-
-            queue.push(newPath); // 新しい経路をキューに追加
-        }
-    }
-
-    return null; // 経路が見つからない場合
-}
-
-function moveUnitTowards(unit, target) {
-    if (!unit || !target || !Number.isFinite(unit.x) || !Number.isFinite(unit.y) || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
-        console.error(`Invalid unit or target coordinates: unit=${JSON.stringify(unit)}, target=${JSON.stringify(target)}`);
-        return;
-    }
-
-    const targetProvinceId = getRoadId(target.x, target.y);
-    const currentProvinceId = getRoadId(unit.x, unit.y);
-
-    if (!targetProvinceId || !currentProvinceId) {
-        console.error(`Invalid province IDs: targetProvinceId=${targetProvinceId}, currentProvinceId=${currentProvinceId}`);
-        return;
-    }
-
-    const path = findPath(currentProvinceId, targetProvinceId);
-    if (!path) {
-        console.error(`No path found from province ${currentProvinceId} to ${targetProvinceId}`);
-        return;
-    }
-
-    console.log(`Unit ${unit.id} (Country: ${unit.countryId}) is moving.`);
-    console.log(`Current Province ID: ${currentProvinceId}`);
-    console.log(`Target Province ID: ${targetProvinceId}`);
-    console.log(`Path: ${path.join(' -> ')}`);
-    console.log(`Target Coordinates: x=${target.x}, y=${target.y}`);
-
-    for (const provinceId of path) {
-        if (unit.currentMov <= 0) {
-            console.log(`Unit ${unit.id} stopped at province ${provinceId} due to lack of movement points.`);
-            break;
-        }
-        if (isEnemyInProvince(provinceId, unit)) {
-            console.log(`Unit ${unit.id} stopped at province ${provinceId} due to enemy presence.`);
-            break;
-        }
-
-        const provinceCenter = getProvinceCenterFromId(provinceId);
-        if (!provinceCenter || !Number.isFinite(provinceCenter.x) || !Number.isFinite(provinceCenter.y)) {
-            console.error(`Invalid province center: ${JSON.stringify(provinceCenter)}`);
-            break;
-        }
-
-        unit.x = provinceCenter.x;
-        unit.y = provinceCenter.y;
-        unit.currentMov--;
-
-        if (unit.currentMov <= 0) {
-            console.log(`Unit ${unit.id} stopped at province ${provinceId} due to lack of movement points.`);
-            break;
-        }
-    }
-
-    drawUnits();
-}
-
-function getProvinceCenterFromId(provinceId) {
-    const center = provinceCenters[String(provinceId)];
-    if (!center) {
-        console.error(`Province center not found for province ID: ${provinceId}`);
-        return { x: 0, y: 0 }; // デフォルト値
-    }
-    console.log(`Found center for province ID ${provinceId}: ${JSON.stringify(center)}`);
-    return center;
-}
-
-// 距離を計算
-function calculateDistance(x1, y1, x2, y2) {
-    return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-}
-
-function processCpuProduction(cpuResources, productionQueue, factionUnits, factionName) {
-    console.log(`=== CPU Production Start for ${factionName} ===`);
-    console.log(`Initial Resources: ${cpuResources}`);
-    console.log(`Faction Units:`, factionUnits);
-
-    // 自陣営が保有している基地を取得
-    const ownedBases = bases.filter(base => getBaseFaction(base) === factionName);
-    console.log(`Owned Bases:`, ownedBases);
-
-    if (ownedBases.length === 0) {
-        console.log(`No bases owned by ${factionName}.`);
-        return cpuResources; // 保有基地がない場合は終了
-    }
-
-    // ランダムで1つの基地を選択
-    const randomBase = ownedBases[Math.floor(Math.random() * ownedBases.length)];
-    console.log(`Selected Base:`, randomBase);
-
-    const provinceId = randomBase.provinceId;
-    const unitsInProvince = factionUnits.filter(unit => getRoadId(unit.x, unit.y) === String(provinceId));
-    console.log(`Units in Province ${provinceId}:`, unitsInProvince);
-
-    if (unitsInProvince.length === 0) {
-        console.log(`No units in province ${provinceId}. Skipping production.`);
-        return cpuResources; // 基地にユニットがいない場合はスキップ
-    }
-
-    const unitCountryId = unitsInProvince[0].countryId; // 基地にいるユニットの国IDを取得
-    const unitStatsForCountry = unitStats[unitCountryId];
-    console.log(`Unit Stats for Country ${unitCountryId}:`, unitStatsForCountry);
-
-    if (!unitStatsForCountry) {
-        console.log(`No unit stats found for country ID ${unitCountryId}.`);
-        return cpuResources;
-    }
-
-    // 生産優先度: 戦車 > 歩兵
-    const unitTypes = ['tank', 'infantry'];
-    for (const unitType of unitTypes) {
-        const unitCost = unitStatsForCountry[unitType]?.cost;
-        const unitTime = unitStatsForCountry[unitType]?.time;
-
-        console.log(`Attempting to produce ${unitType}: Cost=${unitCost}, Time=${unitTime}, Resources=${cpuResources}`);
-
-        if (unitCost !== undefined && cpuResources >= unitCost) {
-            const baseCoord = unitType === 'ship' ? baseCoordinates[randomBase.name + '(艦)'] : baseCoordinates[randomBase.name];
-            if (!baseCoord) {
-                console.log(`Base coordinates not found for ${randomBase.name}.`);
-                continue;
-            }
-
-            console.log(`Producing ${unitType} at ${baseCoord.x}, ${baseCoord.y}`);
-
-            productionQueue.push({
-                id: unitIdCounter++,
-                type: unitType,
-                countryId: unitCountryId,
-                x: baseCoord.x,
-                y: baseCoord.y,
-                hp: unitStatsForCountry[unitType].hp,
-                def: unitStatsForCountry[unitType].def,
-                mov: unitStatsForCountry[unitType].mov,
-                currentMov: unitStatsForCountry[unitType].mov,
-                remainingTime: unitTime
-            });
-
-            cpuResources -= unitCost; // 資源を消費
-            console.log(`Produced ${unitType}. Remaining Resources: ${cpuResources}`);
-            break; // 1ユニット生産したら終了
-        } else {
-            console.log(`Not enough resources to produce ${unitType}.`);
-        }
-    }
-
-    console.log(`=== CPU Production End for ${factionName} ===`);
-    return cpuResources; // 残りの資源を返す
-}
-
-function processCpuProductionQueue(productionQueue, factionUnits) {
-    for (let i = productionQueue.length - 1; i >= 0; i--) {
-        const unit = productionQueue[i];
-        console.log(`Processing production: Unit ID=${unit.id}, Type=${unit.type}, Remaining Time=${unit.remainingTime}`);
-        unit.remainingTime--; // 生産時間を減少
-
-        if (unit.remainingTime <= 0) {
-            // 生産完了、ユニットを配置
-            console.log(`Production complete: Unit ID=${unit.id}, Type=${unit.type}`);
-            factionUnits.push({
-                id: unit.id,
-                type: unit.type,
-                countryId: unit.countryId,
-                x: unit.x,
-                y: unit.y,
-                hp: unit.hp,
-                def: unit.def,
-                mov: unit.mov,
-                currentMov: unit.mov // 初期移動力を設定
-            });
-            units.push({
-                id: unit.id,
-                type: unit.type,
-                countryId: unit.countryId,
-                x: unit.x,
-                y: unit.y,
-                hp: unit.hp,
-                def: unit.def,
-                mov: unit.mov,
-                currentMov: unit.mov // 初期移動力を設定
-            });
-            console.log(`Unit placed on map: ID=${unit.id}, Type=${unit.type}, Coordinates=(${unit.x}, ${unit.y})`);
-            productionQueue.splice(i, 1); // キューから削除
-        }
-    }
-    drawUnits(); // ユニットを再描画
-}
-
-canvas.addEventListener('mousemove', function(event) {
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    highlightProvince(x, y); // プロヴィンスをハイライト
-    coordinatesDiv.textContent = `X: ${x}, Y: ${y}`; // 座標を表示
-
-    const provinceId = getRoadId(x, y);
-    provinceIdDisplay.textContent = `プロヴィンスID: ${provinceId || '不明'}`; // プロヴィンスIDを表示
-});
 
         canvas.addEventListener('click', function(event) {
         const rect = canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-
-        const provinceId = getRoadId(x, y);
-
-        if (provinceId) {
-        // 隣接するプロヴィンスを取得
-        const adjacentProvinces = provinceAdjacencies[provinceId] || [];
-        console.log(`Clicked Province ID: ${provinceId}`);
-        console.log(`Adjacent Provinces: ${adjacentProvinces.join(', ')}`);
-    } else {
-        console.log('Clicked outside of any province.');
-    }
 
         // クリックされた位置にあるユニットを検索
         const clickedUnit = units.find(unit => {
@@ -1874,6 +940,7 @@ canvas.addEventListener('mousemove', function(event) {
         const dx = x - unit.x;
         const dy = y - unit.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
+        console.log(`Unit: (${unit.x}, ${unit.y}), Click: (${x}, ${y}), Distance: ${distance}`);
     });
 
     if (clickedUnit) {
@@ -1887,43 +954,23 @@ canvas.addEventListener('mousemove', function(event) {
             selectedUnit = clickedUnit;
             displayUnitStats(selectedUnit); // ユニットのステータスを表示
         }
-    } else if (selectedUnit) {
-                // 自分の陣営以外のユニットは移動できない
-                const playerFaction = Object.keys(factions).find(faction =>
-            factions[faction].includes(selectedCountryId)
-        );
-        if (!playerFaction || !factions[playerFaction].includes(selectedUnit.countryId)) {
-            alert('自分の陣営以外のユニットは移動できません。');
-            return;
-        }
+        } else if (selectedUnit) {
+            // ユニットが選択されている場合、移動処理
+            const targetProvinceId = getRoadId(x, y);
+            const currentProvinceId = getRoadId(selectedUnit.x, selectedUnit.y);
 
-        if (selectedUnit.currentMov <= 0) {
-            alert('このユニットは移動力が不足しています。');
-            return;
-        }
-
-        const targetProvinceId = getRoadId(x, y);
-        const currentProvinceId = getRoadId(selectedUnit.x, selectedUnit.y);
-
-        if (targetProvinceId && currentProvinceId &&
-            provinceAdjacencies[currentProvinceId] &&
-            provinceAdjacencies[currentProvinceId].includes(targetProvinceId)) {
-
-            // 敵ユニットがいる場合は移動を禁止
-            if (isEnemyInProvince(targetProvinceId, selectedUnit)) {
-                alert('敵ユニットが存在するため、このプロヴィンスには侵入できません。');
-                return;
+            if (targetProvinceId && currentProvinceId &&
+                provinceAdjacencies[currentProvinceId] &&
+                provinceAdjacencies[currentProvinceId].includes(targetProvinceId)) {
+                // 移動可能な場合
+                const center = getProvinceCenter(x, y);
+                selectedUnit.x = center.x;
+                selectedUnit.y = center.y;
+                selectedUnit = null; // 移動後に選択解除
+                drawUnits(); // ユニットを再描画
+            } else {
+                selectedUnit = null; // 移動できない場合、選択解除
             }
-
-            const center = getProvinceCenter(x, y);
-            selectedUnit.x = center.x;
-            selectedUnit.y = center.y;
-            selectedUnit.currentMov--; // 移動力を1消費
-            selectedUnit = null;
-            drawUnits();
-        } else {
-            alert('移動できません。隣接するプロヴィンスを選択してください。');
-        }
             // クリックされた位置のプロヴィンスIDを取得
                 const provinceId = getRoadId(x, y);
 
@@ -1937,28 +984,6 @@ canvas.addEventListener('mousemove', function(event) {
             coordinatesDiv.textContent = ''; // 座標をクリア
         });
 
-// マップ画像の描画後にプロヴィンス番号を描画
-displayImage.onload = function() {
-    canvas.width = displayImage.width;
-    canvas.height = displayImage.height;
-    ctx.drawImage(displayImage, 0, 0);
-    placeUnit(unitPosition.x, unitPosition.y);
-    displayBases();
-};
-
-        // 初期ユニット配置
-        placeUnit('22', 'infantry', baseCoordinates['ステーネ'].x, baseCoordinates['ステーネ'].y); // スィジュールタ軍(歩兵)
-        placeUnit('01', 'infantry', baseCoordinates['ブラウジア'].x, baseCoordinates['ブラウジア'].y); // スクニューネ軍(歩兵)
-        placeUnit('01', 'tank', baseCoordinates['スミウルタ'].x, baseCoordinates['スミウルタ'].y); // スクニューネ軍(戦車)
-        placeUnit('41', 'infantry', baseCoordinates['ブムァートネ'].x, baseCoordinates['ブムァートネ'].y); // ユスィネ派ニグラシオ軍(歩兵)
-        placeUnit('01', 'infantry', baseCoordinates['ガケ'].x, baseCoordinates['ガケ'].y); // スクニューネ軍(歩兵)
-        placeUnit('01', 'tank', baseCoordinates['スツューフテ'].x, baseCoordinates['スツューフテ'].y); // スクニューネ軍(戦車)
-        placeUnit('42', 'infantry', baseCoordinates['スカカルテ'].x, baseCoordinates['スカカルテ'].y); // スカカルテ軍(歩兵)
-        placeUnit('01', 'tank', baseCoordinates['スプミウスタルテ'].x, baseCoordinates['スプミウスタルテ'].y); // スクニューネ軍(戦車)
-        placeUnit('01', 'infantry', baseCoordinates['ルルペ'].x, baseCoordinates['ルルペ'].y); // スクニューネ軍(歩兵)
-        placeUnit('01', 'infantry', baseCoordinates['ルイネ'].x, baseCoordinates['ルイネ'].y); // スクニューネ軍(歩兵)
-        placeUnit('21', 'infantry', baseCoordinates['スツィーフタルテ'].x, baseCoordinates['スツィーフタルテ'].y); // スングィールタ軍(歩兵)
-        placeUnit('21', 'tank', baseCoordinates['シュメケルペ'].x, baseCoordinates['シュメケルペ'].y); // スングィールタ軍(戦車)
         preloadUnitImages(); // ユニット画像を事前に読み込む
         drawUnits(); // 初期ユニットを描画
     </script>

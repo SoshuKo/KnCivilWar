@@ -1129,11 +1129,12 @@ function produceUnit(unitType) {
             ['infantry', 'tank', 'ship'].forEach(type => {
                 ['blue', 'red', 'green'].forEach(color => {
                     const img = new Image();
-                    img.src = `${color}_${type}.png`;
-                    unitImages[`${color}_${type}`] = img;
+                    img.onload = function() {
+                        unitImages[`${color}_${type}`] = img;
+                    };
+                    img.src = imagePaths[`${color}_${type}`]; // 定義したパスを使用
                 });
             });
-        }
 
         // ユニット描画関数
         function drawUnits() {

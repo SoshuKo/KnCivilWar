@@ -747,9 +747,23 @@ const factions = {
             document.getElementById('resourceDisplay').textContent = resources; // 資源を更新
         }
 
-        function processProductionQueue() {
+function processProductionQueue() {
     for (let i = productionQueue.length - 1; i >= 0; i--) {
         const unit = productionQueue[i];
+
+        // 基地のプロヴィンスIDを取得
+        const base = bases.find(b => b.x === unit.x && b.y === unit.y);
+        if (base) {
+            const provinceId = base.provinceId;
+
+            // 敵ユニットがいるか確認
+            if (isEnemyInProvince(provinceId, unit)) {
+                console.log(`Production canceled at base in province ${provinceId} due to enemy presence.`);
+                productionQueue.splice(i, 1); // 生産をキャンセル
+                continue;
+            }
+        }
+
         unit.remainingTime--; // 生産時間を減少
 
         if (unit.remainingTime <= 0) {

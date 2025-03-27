@@ -2107,38 +2107,64 @@ function processCpuProduction(cpuResources, productionQueue, factionUnits, facti
         return cpuResources; // 保有基地がない場合は終了
     }
 
-    // ランダムで1つの基地を選択
-    const randomBase = ownedBases[Math.floor(Math.random() * ownedBases.length)];
-    console.log(`Selected Base:`, randomBase);
+    // 敵陣営の艦艇がマップ上に存在するか確認
+    const enemyShipsExist = units.some(unit => unit.type === 'ship' && !factions[factionName].includes(unit.countryId));
+    console.log(`Enemy ships exist: ${enemyShipsExist}`);
 
-    const provinceId = randomBase.provinceId;
-    const unitsInProvince = factionUnits.filter(unit => getRoadId(unit.x, unit.y) === String(provinceId));
-    console.log(`Units in Province ${provinceId}:`, unitsInProvince);
+    // 艦艇を優先的に生産
+    if (enemyShipsExist) {
+        const baseWithShipProduction = ownedBases.find(base => base.shipProvinceId);
+        if (baseWithShipProduction) {
+            const unitCountryId = factionUnits[0]?.countryId; // 基地にいるユニットの国IDを取得
+            const unitStatsForCountry = unitStats[unitCountryId];
+            if (unitStatsForCountry && unitStatsForCountry['ship']) {
+                const shipCost = unitStatsForCountry['ship'].cost;
+                const shipTime = unitStatsForCountry['ship'].time;
 
-    if (unitsInProvince.length === 0) {
-        console.log(`No units in province ${provinceId}. Skipping production.`);
-        return cpuResources; // 基地にユニットがいない場合はスキップ
-    }
+                if (cpuResources >= shipCost) {
+                    const baseCoord = baseCoordinates[baseWithShipProduction.name + '(艦)'];
+                    if (baseCoord) {
+                        console.log(`Producing ship at ${baseCoord.x}, ${baseCoord.y}`);
 
-    const unitCountryId = unitsInProvince[0].countryId; // 基地にいるユニットの国IDを取得
-    const unitStatsForCountry = unitStats[unitCountryId];
-    console.log(`Unit Stats for Country ${unitCountryId}:`, unitStatsForCountry);
+                        productionQueue.push({
+                            id: unitIdCounter++,
+                            type: 'ship',
+                            countryId: unitCountryId,
+                            x: baseCoord.x,
+                            y: baseCoord.y,
+                            hp: unitStatsForCountry['ship'].hp,
+                            def: unitStatsForCountry['ship'].def,
+                            mov: unitStatsForCountry['ship'].mov,
+                            currentMov: unitStatsForCountry['ship'].mov,
+                            remainingTime: shipTime
+                        });
 
-    if (!unitStatsForCountry) {
-        console.log(`No unit stats found for country ID ${unitCountryId}.`);
-        return cpuResources;
+                        cpuResources -= shipCost; // 資源を消費
+                        console.log(`Produced ship. Remaining Resources: ${cpuResources}`);
+                        return cpuResources; // 艦艇を1体生産したら終了
+                    }
+                } else {
+                    console.log(`Not enough resources to produce ship. Required: ${shipCost}, Available: ${cpuResources}`);
+                }
+            }
+        }
     }
 
     // 生産優先度: 戦車 > 歩兵
     const unitTypes = ['tank', 'infantry'];
     for (const unitType of unitTypes) {
-        const unitCost = unitStatsForCountry[unitType]?.cost;
-        const unitTime = unitStatsForCountry[unitType]?.time;
+        const unitCountryId = factionUnits[0]?.countryId; // 基地にいるユニットの国IDを取得
+        const unitStatsForCountry = unitStats[unitCountryId];
+        if (!unitStatsForCountry || !unitStatsForCountry[unitType]) continue;
+
+        const unitCost = unitStatsForCountry[unitType].cost;
+        const unitTime = unitStatsForCountry[unitType].time;
 
         console.log(`Attempting to produce ${unitType}: Cost=${unitCost}, Time=${unitTime}, Resources=${cpuResources}`);
 
-        if (unitCost !== undefined && cpuResources >= unitCost) {
-            const baseCoord = unitType === 'ship' ? baseCoordinates[randomBase.name + '(艦)'] : baseCoordinates[randomBase.name];
+        if (cpuResources >= unitCost) {
+            const randomBase = ownedBases[Math.floor(Math.random() * ownedBases.length)];
+            const baseCoord = baseCoordinates[randomBase.name];
             if (!baseCoord) {
                 console.log(`Base coordinates not found for ${randomBase.name}.`);
                 continue;
